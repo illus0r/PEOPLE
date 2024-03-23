@@ -1,4 +1,4 @@
-
+let sqr = [ [0, -1], [1, 0], [0, 1], [-1, 0] ];
 let poly1 = [];
 let poly2 = [];
 let numVertices = 3; // Number of vertices for each polygon
@@ -22,55 +22,91 @@ let srot = (s, a) => s.map((c) => c.map((p) => rot(...p, a)));
 function setup() {
 	createCanvas(400, 400);
 	noFill();
-	noLoop();
+	// noLoop();
 }
+
+let shapes = [[], [], [], [],];
+let brush
+brush = [
+	sscale([sqr],10),
+	sscale([sqr],20),
+	sscale([sqr],30),
+	sscale([sqr],40),
+]
+let brushTranslated
 
 function draw() {
 	background(220);
-	strokeWeight(1)
-
-	let sqr = [
-		[-100, -100],
-		[100, -100],
-		[100, 100],
-		[-100, 100],
-	];
-	// poly1 = srot([sqr], millis() / 800)[0];
-	poly1 = srot([sqr], 1)[0];
-	poly2 = sscale([poly1], 0.8)[0];
-	poly2.reverse();
-	let shape1 = [poly1, poly2];
-	shape1 = strans(shape1, [200, 200]);
-	shape1 = strans(shape1, [50, 0]);
-	// drawShape(shape1, "#F005");
-
-	let shape2 = strans(shape1, [-100, 0]);
-	// drawShape(shape2, "#00F5");
-
-	let shape3 = sscale([sqr],.4)
-	shape3 = strans(shape3,[mouseX,mouseY])
-	// drawShape(shape3)
-
-	let shape = unionShape(shape1,shape2)
-	// shape = unionShape(shape,shape3)
-	// strokeWeight(8)
-	drawShape(shape)
-
-	// shape3 = strans(shape3, [-100, 0]);
+	brushTranslated = brush.map((s) => strans(s, [mouseX, mouseY]))
+	strokeWeight(.2);
+	brushTranslated.map((s) => drawShape(s, "#F000"));
+	strokeWeight(2);
+	shapes.map((s) => drawShape(s, "#00F0"));
 }
+
+
+function mousePressed(){
+	shapes = shapes.map((s,i) => unionShape(s, brushTranslated[i]))
+}
+
+
+
+function isOuter(poly) {
+	let sum = 0;
+	for (let i = 0; i < poly.length; i++) {
+		const currentVertex = poly[i];
+		const nextVertex = poly[(i + 1) % poly.length];
+		sum += (nextVertex[0] - currentVertex[0]) * (nextVertex[1] + currentVertex[1]);
+	}
+	return sum < 0;
+}
+
 
 function unionShape(shape1, shape2) {
-	let shape = []
-	for(let p1 of shape1){
-		for(let p2 of shape2){
-			let u = unionPoly(p1,p2)
-			if(u) shape.push(u)
+	let shape = sscale(shape1,1)
+	let polys = [...shape1,...shape2]
+	console.log('polys:',JSON.stringify(polys))
+
+	let counter = 0
+	while(true){
+		let hopeToMerge = false
+		console.log(counter++)
+		for(let i=0;i<polys.length;i++){
+			if(hopeToMerge) break
+			for(let j=i+1;j<polys.length;j++){
+				if(hopeToMerge) break
+				let p1 = polys[i]
+				let p2 = polys[j]
+				let u = unionPoly(p1,p2)
+				console.log('i,j:',i,j, u.length)
+				if(u.length>0){
+					polys.splice(j,1)
+					polys.splice(i,1)
+					polys.push(...u)
+					hopeToMerge = true
+				}
+			}
 		}
+		if(!hopeToMerge) break
 	}
-	return shape
+	// for(let p2 of shape2){
+	// 	for(let p of shape){
+	// 		if(!isOuter(p1) && !isOuter(p2)) continue
+	// 		let u = unionPoly(p1,p2)
+	// 		console.log('u:',u)
+	// 		if(u.length>0) shape.push(...u)
+	// 		else {
+	// 			shape.push(p1,p2)
+	// 		}
+	// 	}
+	// }
+	// console.log('shape:',shape)
+	console.log('polys:',JSON.stringify(polys))
+	console.log('polys:',polys)
+	return polys
 }
 
-function unionPoly(poly1,poly2){
+function unionPoly(poly1,poly2,foo=1.){
 	let [poly1New, poly2New] = addIntersections(poly1, poly2);
 
 	// strokeWeight(2);
@@ -81,25 +117,29 @@ function unionPoly(poly1,poly2){
 	// //  stroke(0, 255, 0);
 	// //drawPoly(poly3New, "#00F5");
 
-	let outs = poly1New.filter((p) => p[2] && p[2] > 0);
+	let outs = poly1New.filter((p) => p[2] && p[2]*foo > 0);
 	// console.log(outs);
 
-	let poly = [];
+	let shape = [];
 	let polys = [poly1New, poly2New];
 	let counter = 0;
 	while (outs.length > 0) {
+		shape.push([]);
 		let out = outs.pop();
 		let current = out;
 		let pid = 0;
 		let i = polys[pid].findIndex((v) => v === out);
 		do {
-			if (counter++ > 100) {
+			push(); fill(0);text(counter, current[0], current[1]); pop()
+			if (counter++ > 10000) {
+				console.log("infinite loop");
 				return;
 			}
 			i++;
 			i = i % polys[pid].length;
 			current = polys[pid][i];
-			poly.push([current[0],current[1]])
+			shape[shape.length - 1].push([current[0],current[1]])
+
 			if (current[2]) {
 				pid = 1 - pid;
 				i = polys[pid].findIndex((v) => v === current);
@@ -107,7 +147,7 @@ function unionPoly(poly1,poly2){
 		} while (current !== out);
 	}
 
-	return poly;
+	return shape;
 
 }
 
@@ -159,13 +199,19 @@ function addIntersections(poly1, poly2) {
 		}
 	}
 
-	let poly1New = [];
+	fill(0)
+	// let c1 = 0
+	// let c2 = 0
+	let poly1New = [];// ← 1
 	for (let i = 0; i < poly1.length; i++) {
 		let [x, y] = poly1[i];
 		poly1New.push([x, y]);
 		insert1[i].sort(
 			(a, b) => Math.hypot(a[0] - x, a[1] - y) - Math.hypot(b[0] - x, b[1] - y)
 		);
+		insert1[i].forEach((v) => {
+			// text(c1++, ...v);
+		})
 		poly1New.push(...insert1[i]);
 	}
 	let poly2New = [];
@@ -175,7 +221,7 @@ function addIntersections(poly1, poly2) {
 		insert2[j].sort(
 			(a, b) => Math.hypot(a[0] - x, a[1] - y) - Math.hypot(b[0] - x, b[1] - y)
 		);
-		insert1[j].forEach((v) => {
+		insert2[j].forEach((v) => {
 			// text(c2++, ...v);
 		})
 		poly2New.push(...insert2[j]);
