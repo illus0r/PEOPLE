@@ -28,17 +28,17 @@ function setup() {
 let shapes = [[], [], [], [],];
 let brush
 brush = [
-	sscale([sqr],10),
-	sscale([sqr],20),
-	sscale([sqr],30),
-	sscale([sqr],40),
+	sscale([sqr],5),
+	sscale([sqr],15),
+	sscale([sqr],25),
+	sscale([sqr],35),
 ]
 let brushTranslated
 
 function draw() {
 	background(220);
 	brushTranslated = brush.map((s) => strans(s, [mouseX, mouseY]))
-	strokeWeight(.2);
+	strokeWeight(.5);
 	brushTranslated.map((s) => drawShape(s, "#F000"));
 	strokeWeight(2);
 	shapes.map((s) => drawShape(s, "#00F0"));
@@ -49,6 +49,26 @@ function mousePressed(){
 	shapes = shapes.map((s,i) => unionShape(s, brushTranslated[i]))
 }
 
+function keyPressed(){
+	removeRandomContour()
+}
+
+function removeRandomContour(){
+	let rndi=-1, rndj=-1
+	let counter = 0
+	shapes.forEach((s,i) => {
+		s.forEach((c,j) => {
+			if(Math.random()<1/(counter+1)){
+				rndi = i
+				rndj = j
+			}
+			counter++
+		})
+	})
+	if(rndi>=0){
+		shapes[rndi].splice(rndj,1)
+	}
+}
 
 
 function isOuter(poly) {
@@ -70,6 +90,10 @@ function unionShape(shape1, shape2) {
 	let counter = 0
 	while(true){
 		let hopeToMerge = false
+		if(counter>10000) {
+			console.error("infinite loop")
+			return []
+		}
 		console.log(counter++)
 		for(let i=0;i<polys.length;i++){
 			if(hopeToMerge) break
@@ -132,7 +156,7 @@ function unionPoly(poly1,poly2,foo=1.){
 		do {
 			push(); fill(0);text(counter, current[0], current[1]); pop()
 			if (counter++ > 10000) {
-				console.log("infinite loop");
+				console.error("infinite loop");
 				return;
 			}
 			i++;
