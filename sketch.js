@@ -175,8 +175,24 @@ function addIntersections(poly1, poly2) {
 		insert2[j].sort(
 			(a, b) => Math.hypot(a[0] - x, a[1] - y) - Math.hypot(b[0] - x, b[1] - y)
 		);
+		insert1[j].forEach((v) => {
+			// text(c2++, ...v);
+		})
 		poly2New.push(...insert2[j]);
 	}
+	noFill()
+
+	// debug
+	// for (let i = 0; i < poly2New.length; i++) {
+	// 	let x1 = poly2New[i][0]+random(-5,5);
+	// 	let y1 = poly2New[i][1]+random(-5,5);
+	// 	let x2 = poly2New[(i + 1)%poly2New.length][0]+random(-5,5);
+	// 	let y2 = poly2New[(i + 1)%poly2New.length][1]+random(-5,5);
+	// 	line(x1, y1, x2, y2);
+	// }
+	// for (let j = 0; j < poly2New.length - 1; j++) {
+	// 	line(...poly2New[j].map(d=>d+random(-5,5)), ...poly2New[j + 1].map(d=>d+random(-5,5)));
+	// }
 
 	return [poly1New, poly2New];
 }
