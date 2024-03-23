@@ -211,9 +211,9 @@ function drawPoly(poly, textFill = 0) {
 	endShape(CLOSE);
 }
 
-function drawShape(shape) {
+function drawShape(shape, textFill = 0) {
 	for (let c of shape) {
-		drawPoly(c);
+		drawPoly(c, textFill);
 	}
 }
 
