@@ -1,4 +1,14 @@
 let sqr = [ [0, -1], [1, 0], [0, 1], [-1, 0] ];
+// let sqr = [ [-1,-1], [1,-1], [1,1], [-1,1] ]
+let F=(n,f)=>[...Array(n|0)].map((_,i)=>f(i))
+let N = 11
+let g = F(N, (i) => F(N, (j) => Math.random() > 0.5 ? 1 : 0))
+// let g = F(N, (i) => F(N, (j) => 0))
+g[2][2] = 1
+// g[3][2] = 1
+// g[3][3] = 1
+// g[4][1] = 1
+console.log('g:',g)
 let poly1 = [];
 let poly2 = [];
 let numVertices = 3; // Number of vertices for each polygon
@@ -22,35 +32,83 @@ let srot = (s, a) => s.map((c) => c.map((p) => rot(...p, a)));
 function setup() {
 	createCanvas(400, 400);
 	noFill();
-	// noLoop();
+	noLoop();
+
+ 	background(220);
+	paintGrid()
+	drawShapes()
 }
 
-let shapes = [[], [], [], [],];
+let shapes = [[], [], [], []];
 let brush
 brush = [
-	sscale([sqr],5),
-	sscale([sqr],15),
-	sscale([sqr],25),
-	sscale([sqr],35),
+	sscale([sqr],.999*5),
+	sscale([sqr],.999*15),
+	sscale([sqr],.999*25),
+	sscale([sqr],.999*35),
 ]
 let brushTranslated
 
-function draw() {
-	background(220);
-	brushTranslated = brush.map((s) => strans(s, [mouseX, mouseY]))
-	strokeWeight(.5);
-	brushTranslated.map((s) => drawShape(s, "#F000"));
-	strokeWeight(2);
-	shapes.map((s) => drawShape(s, "#00F0"));
+// function draw() {
+// 	background(220);
+// 	brushTranslated = brush.map((s) => strans(s, [mouseX, mouseY]))
+// 	strokeWeight(.5);
+// 	brushTranslated.map((s) => drawShape(s, "#F000"));
+// 	strokeWeight(2);
+// 	shapes.map((s) => drawShape(s, "#00F0"));
+// }
+
+function ditherShape(shape){
+		return shape.map((c) => c.map((p) => p.map((x) => x+(Math.random()-.5)*.0001)))
 }
 
-
 function mousePressed(){
+	let [i,j] = xy2ij(mouseX,mouseY)
+	if(i<0 || j<0 || i>=N || j>=N) return
+	g[j][i] = 1-g[j][i]
+	paintGrid()
+	drawShapes()
+}
+function drawShapes(){
+	background(220);
+	strokeWeight(2);
+	shapes.map((s) => drawShape(s, "#00F2"));
+}
+
+function paintGrid(){
+	shapes = [[],[],[],[]];
+	for(let i=0;i<N;i++){
+		for(let j=0;j<N;j++){
+			if(g[j][i]>0)	paintCell(i,j)
+		}
+	}
+}
+
+function xy2ij(x,y){
+	let i = Math.floor(x/40)
+	let j = Math.floor(y/40)
+	return [i,j]
+}
+
+function ij2xy(i,j){
+	let x = i*40
+	let y = j*40
+	return [x,y]
+}
+
+function paintCell(i,j){
+	let [x,y] = ij2xy(i,j)
+	brushTranslated = brush.map((s) => strans(s, [x, y]))
 	shapes = shapes.map((s,i) => unionShape(s, brushTranslated[i]))
+	shapes = shapes.map(s => ditherShape(s))
 }
 
 function keyPressed(){
-	removeRandomContour()
+	// removeRandomContour()
+	// console.log('shapes:',shapes)
+	// shapes = shapes.map(s => ditherShape(s))
+	// console.log('shapes:',shapes)
+	// drawShapes()
 }
 
 function removeRandomContour(){
@@ -72,6 +130,7 @@ function removeRandomContour(){
 
 
 function isOuter(poly) {
+	// console.log('isOuter:')
 	let sum = 0;
 	for (let i = 0; i < poly.length; i++) {
 		const currentVertex = poly[i];
@@ -83,9 +142,10 @@ function isOuter(poly) {
 
 
 function unionShape(shape1, shape2) {
+	// console.log('unionShape')
 	let shape = sscale(shape1,1)
 	let polys = [...shape1,...shape2]
-	console.log('polys:',JSON.stringify(polys))
+	// console.log('polys:',JSON.stringify(polys))
 
 	let counter = 0
 	while(true){
@@ -94,7 +154,7 @@ function unionShape(shape1, shape2) {
 			console.error("infinite loop")
 			return []
 		}
-		console.log(counter++)
+		// console.log(counter++)
 		for(let i=0;i<polys.length;i++){
 			if(hopeToMerge) break
 			for(let j=i+1;j<polys.length;j++){
@@ -102,7 +162,7 @@ function unionShape(shape1, shape2) {
 				let p1 = polys[i]
 				let p2 = polys[j]
 				let u = unionPoly(p1,p2)
-				console.log('i,j:',i,j, u.length)
+				// console.log('i,j:',i,j, u.length)
 				if(u.length>0){
 					polys.splice(j,1)
 					polys.splice(i,1)
@@ -117,7 +177,7 @@ function unionShape(shape1, shape2) {
 	// 	for(let p of shape){
 	// 		if(!isOuter(p1) && !isOuter(p2)) continue
 	// 		let u = unionPoly(p1,p2)
-	// 		console.log('u:',u)
+			// console.log('u:',u)
 	// 		if(u.length>0) shape.push(...u)
 	// 		else {
 	// 			shape.push(p1,p2)
@@ -125,8 +185,8 @@ function unionShape(shape1, shape2) {
 	// 	}
 	// }
 	// console.log('shape:',shape)
-	console.log('polys:',JSON.stringify(polys))
-	console.log('polys:',polys)
+	// console.log('polys:',JSON.stringify(polys))
+	// console.log('polys:',polys)
 	return polys
 }
 
@@ -154,10 +214,11 @@ function unionPoly(poly1,poly2,foo=1.){
 		let pid = 0;
 		let i = polys[pid].findIndex((v) => v === out);
 		do {
-			push(); fill(0);text(counter, current[0], current[1]); pop()
+			// push(); fill(0);text(counter, current[0], current[1]); pop()
 			if (counter++ > 10000) {
+				debugger
 				console.error("infinite loop");
-				return;
+				return [];
 			}
 			i++;
 			i = i % polys[pid].length;
@@ -178,7 +239,35 @@ function unionPoly(poly1,poly2,foo=1.){
 function lineIntersection(x1, y1, x2, y2, x3, y3, x4, y4) {
 	let den = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
 	if (den === 0) {
-		return null; // Parallel lines or coincident lines
+		// Parallel lines or coincident lines
+		if ((x1 - x2) * (y1 - y3) === (y1 - y2) * (x1 - x3)) {
+			// Lines are coincident, find the midpoint
+			let minX12 = Math.min(x1, x2);
+			let maxX12 = Math.max(x1, x2);
+			let minY12 = Math.min(y1, y2);
+			let maxY12 = Math.max(y1, y2);
+
+			let minX34 = Math.min(x3, x4);
+			let maxX34 = Math.max(x3, x4);
+			let minY34 = Math.min(y3, y4);
+			let maxY34 = Math.max(y3, y4);
+
+			let intersectionX = (Math.max(minX12, minX34) + Math.min(maxX12, maxX34)) / 2;
+			let intersectionY = (Math.max(minY12, minY34) + Math.min(maxY12, maxY34)) / 2;
+
+			if (
+				intersectionX < minX12 ||
+				intersectionX > maxX12 ||
+				intersectionY < minY12 ||
+				intersectionY > maxY12
+			) {
+				return null;
+			}
+
+				return [intersectionX, intersectionY];
+		} else {
+			return null; // Parallel lines
+		}
 	}
 
 	let t = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / den;
@@ -272,11 +361,11 @@ function drawPoly(poly, textFill = 0) {
 	for (let i = 0; i < poly.length; i++) {
 		vertex(poly[i][0], poly[i][1]);
 		if (poly[i][2]) if (poly[i][2] > 0) circle(poly[i][0], poly[i][1], 20);
-		push();
-		noStroke();
-		fill(textFill);
-		text(i, ...poly[i]);
-		pop();
+		// push();
+		// noStroke();
+		// fill(textFill);
+		// text(i, ...poly[i]);
+		// pop();
 	}
 	endShape(CLOSE);
 }
