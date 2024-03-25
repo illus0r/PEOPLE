@@ -7,7 +7,6 @@ function preload() {
 }
 let S,R,t,i
 S = new Uint32Array([4, 1, ss = t = 2, 3].map(i => parseInt('0x8571027db178A535d56335Adb0580abd2fF29274'.substr(i * 8, 8), 16))); R = _ => (t = S[3], S[3] = S[2], S[2] = S[1], S[1] = ss = S[0], t ^= t << 11, S[0] ^= t ^ t >>> 8 ^ ss >>> 19, S[0] / 2 ** 32); 'tx piter'
-Math.random = R
 // let sqr = [ [0, -1], [1, 0], [0, 1], [-1, 0] ];
 let sqr = [ [-1,-1], [1,-1], [1,1], [-1,1] ]
 let F=(n,f)=>[...Array(n|0)].map((_,i)=>f(i))
@@ -278,12 +277,13 @@ let g = F(N, (i) => F(N, (j) => undefined))
 // let g = F(N, (i) => F(N, (j) => Math.random() > 0.1 ? undefined : 'F'))
 let currentLetter = 'A'
 let brushSpread = 2
+let seed = 0
 
 
 function setup() {
 	createCanvas(width, width);
 	strokeWeight(strokeW);
-	textFont(font);
+	// textFont(font);
 	textSize(sz*1.4);
 	textAlign(CENTER, CENTER);
 	noFill();
@@ -332,12 +332,29 @@ function keyPressed(){
 	}
 	// left right to change strokeWeight
 	else if(key === 'ArrowLeft'){
-		strokeW -= .2
+		strokeW *= .9
 		strokeWeight(strokeW)
 	}
 	else if(key === 'ArrowRight'){
-		strokeW += .2
+		strokeW /= .9
 		strokeWeight(strokeW)
+	}
+	// up down to change contourProb
+	else if(key === 'ArrowUp'){
+		contourProb += .1
+		if(contourProb > 1) contourProb = 1
+	}
+	else if(key === 'ArrowDown'){
+		contourProb -= .1
+		if(contourProb < .1) contourProb = .1
+	}
+	// shift to erase
+	else if(key === 'Shift'){
+		g = F(N, (i) => F(N, (j) => undefined))
+	}
+	else if(key === ' '){
+		seed = Math.random()
+		console.log('seed:',seed)
 	}
 }
 
@@ -353,12 +370,31 @@ function mouseWheel(event){
 }
 
 function draw() {
-	randomSeed(0);
 	background(0);
+	drawHelp()
+	randomSeed(seed*9999);
 	// drawGrid();
 	updateShapes()
 	shapes.map((s) => drawShape(s, "#00F0"));
 	// drawLetter();
+}
+
+function drawHelp(){
+	push()
+	fill(100)
+	noStroke()
+	textSize(20)
+	textAlign(LEFT)
+
+	text("To switch a letter, press A…Z", 10, 30)
+	text("To change the stroke weight, use ← and → arrow keys", 10, 60)
+	text("To change the pattern size, scroll ↑ ↓", 10, 90)
+	text("To erace the letter, hold the shift key", 10, 120)
+	text("To randomize the pattern, press space", 10, 150)
+	text("To change the amount of contours, use ↑ ↓ arrow keys", 10, 180)
+
+	pop()
+	
 }
 
 function mousePressed(){
@@ -371,11 +407,17 @@ function mousePressed(){
 			let I = i
 			let J = j
 			if(letterBlocks[j][i]){
-				g[J+mouseJ][I+mouseI] = currentLetter
+				if(keyIsPressed){
+					g[J+mouseJ][I+mouseI] = undefined
+				}
+				else{
+					g[J+mouseJ][I+mouseI] = currentLetter
+				}
 			}
 		}
 	}
 	updateShapes()
+	drawHelp = () => {}
 }
 
 //{{{
