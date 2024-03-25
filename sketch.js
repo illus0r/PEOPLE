@@ -268,11 +268,11 @@ let abc = {////{{{
 	],
 };////}}}
 
-let N = 50
-let sz = 20
-let width = N*sz
+let N = 80
+let sz = 15
+let width = N*sz// / Math.sqrt(2)
 let contourProb = .8
-let strokeW = 2
+let strokeW = sz/20
 let g = F(N, (i) => F(N, (j) => undefined))
 // let g = F(N, (i) => F(N, (j) => Math.random() > 0.1 ? undefined : 'F'))
 let currentLetter = 'A'
@@ -372,6 +372,11 @@ function mouseWheel(event){
 function draw() {
 	background(0);
 	drawHelp()
+	// rotate the viewport 45° CCW
+	translate(width/2, height/2);
+	rotate(-PI/4);
+	scale(sqrt(2));
+	translate(-width/2, -height/2);
 	randomSeed(seed*9999);
 	// drawGrid();
 	updateShapes()
@@ -475,8 +480,13 @@ function updateShapes(){
 }
 
 function xy2ij(x,y){
-	let i = Math.floor(x/sz+.5)
-	let j = Math.floor(y/sz+.5)
+	let X = x, Y = y
+	X -= width/2;	Y -= height/2
+	;[X, Y] = rot(X, Y, PI/4)
+	;[X, Y] = vmul([X, Y], 1./sqrt(2))
+	X += width/2;	Y += height/2
+	let i = Math.floor(X/sz+.5)
+	let j = Math.floor(Y/sz+.5)
 	return [i,j]
 }
 
