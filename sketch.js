@@ -1,138 +1,225 @@
 import {abc} from './abc.js'
+import {R, F, rot, vmul, sscale, strans, srot, PI} from './helpers.js'
 // UI
 ////{{{
 const pane = new Tweakpane.Pane()
+
 let PARAMS = {
   strokeWeight: 1,
-  brushSpread: 2,
-  brushDensity: 0.8,
+  moduleSize: 2,
+  contourDensity: 0.8,
   zoom: 1,
 }
 pane.addInput(PARAMS, 'strokeWeight', {min: 0.1, max: 20}).on('change', () => {
   // strokeWeight(PARAMS.strokeWeight)
+  updateStrokeWeight()
 })
-pane.addInput(PARAMS, 'brushSpread', {min: 0.1, max: 20}).on('change', () => {
-  makeBrush(PARAMS.brushSpread)
+pane.addInput(PARAMS, 'moduleSize', {min: 0.1, max: 20}).on('change', () => {
+  resizeModule(PARAMS.moduleSize)
+  updateShapes()
+  drawShapes()
 })
 pane.addInput(PARAMS, 'zoom', {min: 0.1, max: 10})
-pane.addInput(PARAMS, 'brushDensity', {min: 0.1, max: 1})
+pane.addInput(PARAMS, 'contourDensity', {min: 0.1, max: 1}).on('change', () => {
+  updateShapes()
+  drawShapes()
+})
 //buttons
 pane.addButton({title: 'randomize'}).on('click', () => {
-  console.log('randomize:')
+  // console.log('randomize:')
 })
 // save svg
-pane.addButton({title: 'save svg'}).on('click', () => {})
+pane.addButton({title: 'save svg'}).on('click', () => {
+  saveSVG(svg, 'PEOPLE.svg')
+})
 ////}}}
 
 // Helpers
 //{{{
-let PI = Math.PI
-let [mouseX, mouseY] = [0, 0]
-let S, R, t, i, ss
-S = new Uint32Array(
-  [4, 1, (ss = t = 2), 3].map(i =>
-    parseInt('0x8571027db178A535d56335A3b0580abd2fF29274'.substr(i * 8, 8), 16),
-  ),
-)
-R = _ => (
-  (t = S[3]),
-  (S[3] = S[2]),
-  (S[2] = S[1]),
-  (S[1] = ss = S[0]),
-  (t ^= t << 11),
-  (S[0] ^= t ^ (t >>> 8) ^ (ss >>> 19)),
-  S[0] / 2 ** 32
-)
-;('tx piter')
-let F = (n, f) => [...Array(n | 0)].map((_, i) => f(i))
-let rot = (x, y, angle) => {
-  let c = Math.cos(angle),
-    s = Math.sin(angle)
-  return [x * c - y * s, x * s + y * c]
-}
-let vmul = (a, s) => a.map(d => d * s)
-let sscale = (s, m) => s.map(c => c.map(p => p.map(x => x * m)))
-let strans = (s, v) => s.map(c => c.map(p => p.map((x, i) => x + v[i])))
-let srot = (s, a) => s.map(c => c.map(p => rot(...p, a)))
 ////}}}
 
-// let sqr = [ [0, -1], [1, 0], [0, 1], [-1, 0] ];
+let svg = document.querySelector('svg')
+let [mouseX, mouseY] = [0, 0]
+// let sqr = [
+//   [0, -1],
+//   [1, 0],
+//   [0, 1],
+//   [-1, 0],
+// ]
 let sqr = [
   [-1, -1],
   [1, -1],
   [1, 1],
   [-1, 1],
 ]
-let svg = document.querySelector('svg')
 
-let N = 80
-let sz = 15
-let width = N * sz // / Math.sqrt(2)
+let N = 40
+let gridSize = 15
+let width = N * gridSize // / Math.sqrt(2)
 let height = 800
-let g = F(N, _ => F(N, _ => undefined))
-// let g = F(N, (i) => F(N, (j) => Math.random() > 0.1 ? undefined : 'F'))
+let g = F(N, i => F(N, j => (R() > 0.05 ? undefined : 'F')))
+// let g = F(N, _ => F(N, _ => undefined))
+g[2][2] = 'F'
+g[3][3] = 'F'
 let currentLetter = 'A'
 let seed = 0
+let moduleTranslated
 
-function setup() {
-  svg.setAttribute('viewBox', `0 0 ${width} ${height}`)
-  svg.setAttribute('width', width)
-  svg.setAttribute('height', height)
-  svg.setAttribute('style', 'background: #554')
-}
+function setup() {}
 setup()
 
-// function keyPressed() {
-//   // if a…z set it to A…Z
-//   if (key >= 'a' && key <= 'z') {
-//     currentLetter = key.toUpperCase()
+// document.addEventListener('click', e => {
+//   let letterMatrix = abc[currentLetter]
+//   console.log('letterMatrix:', letterMatrix)
+//   let [mouseI, mouseJ] = xy2ij(mouseX, mouseY)
+//   mouseI -= (letterMatrix[0].length / 2) | 0
+//   mouseJ -= (letterMatrix.length / 2) | 0
+//   for (let j = 0; j < letterMatrix.length; j++) {
+//     for (let i = 0; i < letterMatrix[j].length; i++) {
+//       let I = i
+//       let J = j
+//       if (letterMatrix[j][i]) {
+//         if (e.shiftKey) {
+//           g[J + mouseJ][I + mouseI] = undefined
+//         } else {
+//           g[J + mouseJ][I + mouseI] = currentLetter
+//         }
+//       }
+//     }
 //   }
-//   // left right to change strokeWeight
-//   else if (key === 'ArrowLeft') {
-//     PARAMS.strokeWeight *= 0.9
-//     // strokeWeight(PARAMS.strokeWeight)
-//   } else if (key === 'ArrowRight') {
-//     PARAMS.strokeWeight /= 0.9
-//     // strokeWeight(PARAMS.strokeWeight)
-//   }
-//   // up down to change PARAMS.brushDensity
-//   else if (key === 'ArrowUp') {
-//     PARAMS.brushDensity += 0.1
-//     if (PARAMS.brushDensity > 1) PARAMS.brushDensity = 1
-//   } else if (key === 'ArrowDown') {
-//     PARAMS.brushDensity -= 0.1
-//     if (PARAMS.brushDensity < 0.1) PARAMS.brushDensity = 0.1
-//   }
-//   // shift to erase
-//   else if (key === 'Shift') {
-//     g = F(N, _ => F(N, _ => undefined))
-//   } else if (key === ' ') {
-//     seed = Math.random()
-//     console.log('seed:', seed)
-//   }
-// }
-
-// function draw() {
-//   svg.innerHTML = ''
-//   background(0)
-//   drawHelp()
-//   // rotate the viewport 45° CCW
-//   translate(width / 2, height / 2)
-//   rotate(-PI / 4)
-//   scale(Math.sqrt(2))
-//   translate(-width / 2, -height / 2)
-//   randomSeed(seed * 9999)
 //   updateShapes()
-//   shapes.map(s => drawShape(s, '#00F0'))
-// }
+//   drawHelp = () => {}
+// })
 
-// function drawHelp() {
-//   push()
-//   fill(100)
-//   noStroke()
-//   textSize(20)
-//   textAlign(LEFT)
+//{{{
 
+let shapes = [[], [], [], []]
+let brush
+
+function resizeModule(moduleSize = 2) {
+  brush = [
+    sscale([sqr], (0.999 * gridSize * moduleSize * 0.5) / 4),
+    sscale([sqr], (0.999 * gridSize * moduleSize * 1.5) / 4),
+    sscale([sqr], (0.999 * gridSize * moduleSize * 2.5) / 4),
+    sscale([sqr], (0.999 * gridSize * moduleSize * 3.5) / 4),
+  ]
+}
+resizeModule(PARAMS.moduleSize)
+
+let path
+function drawShapes() {
+  svg.innerHTML = ''
+  path = ''
+  path = '<path d="'
+  shapes.map(s => drawShape(s))
+  path += '" />'
+  svg.innerHTML += path
+}
+
+function updateShapes() {
+  // console.log('updateShapes:')
+  shapes = [[], [], [], []]
+
+  let letterMatrix = abc[currentLetter]
+  let [mouseI, mouseJ] = xy2ij(mouseX, mouseY)
+  mouseI -= (letterMatrix[0].length / 2) | 0
+  mouseJ -= (letterMatrix.length / 2) | 0
+
+  for (let i = 0; i < N; i++) {
+    for (let j = 0; j < N; j++) {
+      let I = i - mouseI
+      let J = j - mouseJ
+      if ((letterMatrix[J] && letterMatrix[J][I]) || g[j][i]) {
+        addModuleToShapes(i, j)
+      }
+    }
+  }
+}
+
+function addModuleToShapes(i, j) {
+  let [x, y] = ij2xy(i, j)
+  moduleTranslated = brush.map(s => strans(s, [x, y]))
+  shapes = shapes.map((s, i) => unionShapes(s, moduleTranslated[i]))
+}
+
+function xy2ij(x, y) {
+  let X = x
+  let Y = y
+  X -= width / 2
+  Y -= height / 2
+  ;[X, Y] = rot(X, Y, PI / 4)
+  ;[X, Y] = vmul([X, Y], 1 / Math.sqrt(2))
+  X += width / 2
+  Y += height / 2
+  let i = Math.floor(X / gridSize + 0.5)
+  let j = Math.floor(Y / gridSize + 0.5)
+  return [i, j]
+}
+
+function ij2xy(i, j) {
+  let x = i * gridSize
+  let y = j * gridSize
+  return [x, y]
+}
+
+function unionShapes(shape1, shape2) {
+  // console.log('shape1:', JSON.stringify(shape1))
+  // console.log('shape2:', JSON.stringify(shape2))
+  let clipper = new ClipperLib.Clipper()
+  let scale = 100
+  let subj_paths = shape1.map(contour =>
+    contour.map(point => ({X: point[0] * scale, Y: point[1] * scale})),
+  )
+  let clip_paths = shape2.map(contour =>
+    contour.map(point => ({X: point[0] * scale, Y: point[1] * scale})),
+  )
+
+  clipper.AddPaths(subj_paths, ClipperLib.PolyType.ptSubject, true)
+  clipper.AddPaths(clip_paths, ClipperLib.PolyType.ptClip, true)
+
+  let solution_paths = new ClipperLib.Paths()
+  clipper.Execute(ClipperLib.ClipType.ctUnion, solution_paths)
+
+  let resultShape = solution_paths.map(contour =>
+    contour.map(point => [point.X / scale, point.Y / scale]),
+  )
+
+  // console.log('resultShape:', JSON.stringify(resultShape))
+  return resultShape
+}
+
+function drawShape(shape) {
+  // console.log('shape')
+  for (let c of shape) {
+    if (R() > PARAMS.contourDensity) {
+      continue
+      // drawContour(c, 0)
+    } else {
+      drawContour(c, 1)
+    }
+  }
+}
+
+function drawContour(contour, opacity = 1) {
+  for (let i = 0; i < contour.length; i++) {
+    if (i == 0) {
+      path += `M ${contour[i][0]} ${contour[i][1]} `
+    } else {
+      path += `L ${contour[i][0]} ${contour[i][1]} `
+    }
+  }
+  path += `Z `
+  // if (opacity != 1) path += `display="none" `
+  // add to the SVG
+  svg.innerHTML += path
+}
+
+document.onmousemove = e => {
+  ;[mouseX, mouseY] = [e.clientX, e.clientY]
+  // console.log('mouseX, mouseY:', mouseX, mouseY)
+}
+
+//}}}
 //   text('To switch a letter, press A…Z', 10, 30)
 //   text('To change the stroke weight, use ← and → arrow keys', 10, 60)
 //   text('To change the pattern size, scroll ↑ ↓', 10, 90)
@@ -140,164 +227,44 @@ setup()
 //   text('To randomize the pattern, press space', 10, 150)
 //   text('To change the amount of contours, use ↑ ↓ arrow keys', 10, 180)
 
-//   pop()
-// }
+svg.setAttribute('stroke', '#fff')
 
-document.addEventListener('click', e => {
-  let letterBlocks = abc[currentLetter]
-  console.log('letterBlocks:', letterBlocks)
-  let [mouseI, mouseJ] = xy2ij(mouseX, mouseY)
-  mouseI -= (letterBlocks[0].length / 2) | 0
-  mouseJ -= (letterBlocks.length / 2) | 0
-  for (let j = 0; j < letterBlocks.length; j++) {
-    for (let i = 0; i < letterBlocks[j].length; i++) {
-      let I = i
-      let J = j
-      if (letterBlocks[j][i]) {
-        if (e.shiftKey) {
-          g[J + mouseJ][I + mouseI] = undefined
-        } else {
-          g[J + mouseJ][I + mouseI] = currentLetter
-        }
-      }
-    }
-  }
-  updateShapes()
-  drawHelp = () => {}
+function resize() {
+  width = window.innerWidth
+  height = window.innerHeight
+  svg.setAttribute('width', width)
+  svg.setAttribute('height', height)
+  svg.setAttribute('viewBox', `0 0 ${width} ${height}`)
+}
+resize()
+window.addEventListener('resize', resize)
+
+function updateStrokeWeight() {
+  svg.setAttribute('stroke-width', PARAMS.strokeWeight)
+}
+
+// print g
+updateShapes()
+shapes.forEach(s => {
+  s.forEach(c => {
+    // console.log(c)
+  })
 })
+drawShapes()
 
-//{{{
+function saveSVG(svgElement, fileName) {
+  const svgContent = svgElement.outerHTML
+  console.log('svgContent:', svgContent)
 
-let shapes = [[], [], [], []]
-let brush
+  const blob = new Blob([svgContent], {type: 'image/svg+xml'})
+  const url = URL.createObjectURL(blob)
 
-function makeBrush(brushSpread = 2) {
-  brush = [
-    sscale([sqr], ((0.999 * sz * brushSpread) / 8) * 0.5),
-    sscale([sqr], ((0.999 * sz * brushSpread) / 8) * 1.5),
-    sscale([sqr], ((0.999 * sz * brushSpread) / 8) * 2.5),
-    sscale([sqr], ((0.999 * sz * brushSpread) / 8) * 3.5),
-  ]
+  const a = document.createElement('a')
+  a.href = url
+  a.download = fileName
+  document.body.appendChild(a)
+  a.click()
+
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
 }
-makeBrush(PARAMS.brushSpread)
-
-let brushTranslated
-
-// function draw() {
-// 	background(220);
-// 	brushTranslated = brush.map((s) => strans(s, [mouseX, mouseY]))
-// 	strokeWeight(.5);
-// 	brushTranslated.map((s) => drawShape(s, "#F000"));
-// 	strokeWeight(2);
-// 	shapes.map((s) => drawShape(s, "#00F0"));
-// }
-
-function drawShapes() {
-  svg.innerHTML = ''
-  background(220)
-  shapes.map(s => drawShape(s, '#00F2'))
-}
-
-function updateShapes() {
-  shapes = [[], [], [], []]
-
-  let letterBlocks = abc[currentLetter]
-  let [mouseI, mouseJ] = xy2ij(mouseX, mouseY)
-  mouseI -= (letterBlocks[0].length / 2) | 0
-  mouseJ -= (letterBlocks.length / 2) | 0
-
-  for (let i = 0; i < N; i++) {
-    for (let j = 0; j < N; j++) {
-      let I = i - mouseI
-      let J = j - mouseJ
-      if (letterBlocks[J] && letterBlocks[J][I]) {
-        addModuleToShapes(i, j)
-      } else if (g[j][i]) {
-        addModuleToShapes(i, j)
-      }
-    }
-  }
-}
-
-function xy2ij(x, y) {
-  let X = x,
-    Y = y
-  X -= width / 2
-  Y -= height / 2
-  ;[X, Y] = rot(X, Y, PI / 4)
-  ;[X, Y] = vmul([X, Y], 1 / Math.sqrt(2))
-  X += width / 2
-  Y += height / 2
-  let i = Math.floor(X / sz + 0.5)
-  let j = Math.floor(Y / sz + 0.5)
-  return [i, j]
-}
-
-function ij2xy(i, j) {
-  let x = i * sz
-  let y = j * sz
-  return [x, y]
-}
-
-function addModuleToShapes(i, j) {
-  let [x, y] = ij2xy(i, j)
-  brushTranslated = brush.map(s => strans(s, [x, y]))
-  shapes = shapes.map((s, i) => unionShapes(s, brushTranslated[i]))
-  // shapes = shapes.map(s => ditherShape(s))
-}
-
-function unionShapes(shape1, shape2) {
-  let clipper = new ClipperLib.Clipper()
-
-  // Scale up the shapes if necessary
-  let scale = 100
-  let subj_paths = shape1.map(poly =>
-    poly.map(point => ({X: point[0] * scale, Y: point[1] * scale})),
-  )
-  let clip_paths = shape2.map(poly =>
-    poly.map(point => ({X: point[0] * scale, Y: point[1] * scale})),
-  )
-
-  // Add the paths to the clipper
-  clipper.AddPaths(subj_paths, ClipperLib.PolyType.ptSubject, true)
-  clipper.AddPaths(clip_paths, ClipperLib.PolyType.ptClip, true)
-
-  // Perform union operation
-  let solution_paths = new ClipperLib.Paths()
-  clipper.Execute(ClipperLib.ClipType.ctUnion, solution_paths)
-
-  // Convert the solution paths back to your format
-  let resultShape = solution_paths.map(poly =>
-    poly.map(point => [point.X / scale, point.Y / scale]),
-  )
-
-  return resultShape
-}
-
-function drawShape(shape, textFill = 0) {
-  for (let c of shape) {
-    if (random() > PARAMS.brushDensity) continue
-    drawPoly(c, textFill)
-  }
-}
-
-function drawPoly(poly, textFill = 0) {
-  let path = '<path d="M'
-  for (let i = 0; i < poly.length; i++) {
-    path += `${poly[i][0]} ${poly[i][1]} `
-    if (poly[i][2] && poly[i][2] > 0) {
-      // Adjust radius and position to match your circle parameters
-      path += `M ${poly[i][0] + 10} ${poly[i][1]} m -10, 0 a 10,10 0 1,0 20,0 a 10,10 0 1,0 -20,0 `
-    }
-  }
-  path += 'Z" fill="none" stroke-width=`${PARAMS.strokeWeight}` stroke="black"/>'
-  // add to the SVG
-  svg.innerHTML += path
-}
-
-document.onmousemove = e => {
-  ;[mouseX, mouseY] = [e.clientX, e.clientY]
-  console.log('mouseX, mouseY:', mouseX, mouseY)
-}
-
-//}}}
