@@ -7,7 +7,7 @@ const pane = new Tweakpane.Pane()
 let PARAMS = {
   strokeWeight: 1,
   moduleSize: 2,
-  contourDensity: 0.8,
+  contourDensity: 1,
   zoom: 1,
 }
 pane.addInput(PARAMS, 'strokeWeight', {min: 0.1, max: 20}).on('change', () => {
@@ -40,56 +40,59 @@ pane.addButton({title: 'save svg'}).on('click', () => {
 
 let svg = document.querySelector('svg')
 let [mouseX, mouseY] = [0, 0]
-// let sqr = [
-//   [0, -1],
-//   [1, 0],
-//   [0, 1],
-//   [-1, 0],
-// ]
 let sqr = [
-  [-1, -1],
-  [1, -1],
-  [1, 1],
-  [-1, 1],
+  [0, -1],
+  [1, 0],
+  [0, 1],
+  [-1, 0],
 ]
+
+// let sqr = [
+//   [-1, -1],
+//   [1, -1],
+//   [1, 1],
+//   [-1, 1],
+// ]
 
 let N = 40
 let gridSize = 15
 let width = N * gridSize // / Math.sqrt(2)
 let height = 800
-let g = F(N, i => F(N, j => (R() > 0.05 ? undefined : 'F')))
-// let g = F(N, _ => F(N, _ => undefined))
+// let g = F(N, i => F(N, j => (R() > 0.02 ? undefined : 'F')))
+// checkmate
+// let g = F(N, i => F(N, j => ((i + j) % 8 === 0 ? 'F' : undefined)))
+let g = F(N, _ => F(N, _ => undefined))
 g[2][2] = 'F'
 g[3][3] = 'F'
-let currentLetter = 'A'
+let currentLetter = '.'
 let seed = 0
 let moduleTranslated
 
 function setup() {}
 setup()
 
-// document.addEventListener('click', e => {
-//   let letterMatrix = abc[currentLetter]
-//   console.log('letterMatrix:', letterMatrix)
-//   let [mouseI, mouseJ] = xy2ij(mouseX, mouseY)
-//   mouseI -= (letterMatrix[0].length / 2) | 0
-//   mouseJ -= (letterMatrix.length / 2) | 0
-//   for (let j = 0; j < letterMatrix.length; j++) {
-//     for (let i = 0; i < letterMatrix[j].length; i++) {
-//       let I = i
-//       let J = j
-//       if (letterMatrix[j][i]) {
-//         if (e.shiftKey) {
-//           g[J + mouseJ][I + mouseI] = undefined
-//         } else {
-//           g[J + mouseJ][I + mouseI] = currentLetter
-//         }
-//       }
-//     }
-//   }
-//   updateShapes()
-//   drawHelp = () => {}
-// })
+document.addEventListener('click', e => {
+  let letterMatrix = abc[currentLetter]
+  console.log('letterMatrix:', letterMatrix)
+  let [mouseI, mouseJ] = xy2ij(mouseX, mouseY)
+  mouseI -= (letterMatrix[0].length / 2) | 0
+  mouseJ -= (letterMatrix.length / 2) | 0
+  for (let j = 0; j < letterMatrix.length; j++) {
+    for (let i = 0; i < letterMatrix[j].length; i++) {
+      let I = i
+      let J = j
+      if (letterMatrix[j][i]) {
+        if (e.shiftKey) {
+          g[J + mouseJ][I + mouseI] = undefined
+        } else {
+          g[J + mouseJ][I + mouseI] = currentLetter
+        }
+      }
+    }
+  }
+  updateShapes()
+  drawShapes()
+})
 
 //{{{
 
@@ -106,18 +109,14 @@ function resizeModule(moduleSize = 2) {
 }
 resizeModule(PARAMS.moduleSize)
 
-let path
 function drawShapes() {
   svg.innerHTML = ''
-  path = ''
-  path = '<path d="'
   shapes.map(s => drawShape(s))
-  path += '" />'
-  svg.innerHTML += path
 }
 
 function updateShapes() {
   // console.log('updateShapes:')
+  let gJustFilled = F(N, i => F(N, j => 0))
   shapes = [[], [], [], []]
 
   let letterMatrix = abc[currentLetter]
@@ -130,27 +129,53 @@ function updateShapes() {
       let I = i - mouseI
       let J = j - mouseJ
       if ((letterMatrix[J] && letterMatrix[J][I]) || g[j][i]) {
-        addModuleToShapes(i, j)
+        // so not to run expensive union for them all
+        let justFilledIsNear = false
+        let R = Math.ceil(PARAMS.moduleSize * 2)
+        for (let k = -R; k <= R; k++) {
+          for (let l = -R; l <= R; l++) {
+            if (j + k < 0 || j + k >= N) continue
+            if (i + l < 0 || i + l >= N) continue
+            if (gJustFilled[j + k][i + l] == 1) {
+              justFilledIsNear = true
+            }
+          }
+        }
+        // if (true) {
+        if (justFilledIsNear) {
+          unionModuleWithShapes(i, j)
+          console.log('unionModuleWithShapes:')
+        } else {
+          appendModuleToShapes(i, j)
+          console.log('appendModuleToShapes:')
+        }
+        gJustFilled[j][i] = 1
       }
     }
   }
 }
 
-function addModuleToShapes(i, j) {
+function unionModuleWithShapes(i, j) {
   let [x, y] = ij2xy(i, j)
   moduleTranslated = brush.map(s => strans(s, [x, y]))
   shapes = shapes.map((s, i) => unionShapes(s, moduleTranslated[i]))
 }
 
+function appendModuleToShapes(i, j) {
+  let [x, y] = ij2xy(i, j)
+  moduleTranslated = brush.map(s => strans(s, [x, y]))
+  shapes = shapes.map((s, i) => s.concat(moduleTranslated[i]))
+}
+
 function xy2ij(x, y) {
   let X = x
   let Y = y
-  X -= width / 2
-  Y -= height / 2
-  ;[X, Y] = rot(X, Y, PI / 4)
-  ;[X, Y] = vmul([X, Y], 1 / Math.sqrt(2))
-  X += width / 2
-  Y += height / 2
+  // X -= width / 2
+  // Y -= height / 2
+  // ;[X, Y] = rot(X, Y, PI / 4)
+  // ;[X, Y] = vmul([X, Y], 1 / Math.sqrt(2))
+  // X += width / 2
+  // Y += height / 2
   let i = Math.floor(X / gridSize + 0.5)
   let j = Math.floor(Y / gridSize + 0.5)
   return [i, j]
@@ -201,6 +226,7 @@ function drawShape(shape) {
 }
 
 function drawContour(contour, opacity = 1) {
+  let path = '<path d="'
   for (let i = 0; i < contour.length; i++) {
     if (i == 0) {
       path += `M ${contour[i][0]} ${contour[i][1]} `
@@ -208,14 +234,17 @@ function drawContour(contour, opacity = 1) {
       path += `L ${contour[i][0]} ${contour[i][1]} `
     }
   }
-  path += `Z `
-  // if (opacity != 1) path += `display="none" `
+  path += `Z" `
+  if (opacity != 1) path += `opacity="${opacity}" `
+  path += ' />'
   // add to the SVG
   svg.innerHTML += path
 }
 
 document.onmousemove = e => {
   ;[mouseX, mouseY] = [e.clientX, e.clientY]
+  updateShapes()
+  drawShapes()
   // console.log('mouseX, mouseY:', mouseX, mouseY)
 }
 
