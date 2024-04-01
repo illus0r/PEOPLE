@@ -2,18 +2,30 @@ export let R
 let S, t, i, ss
 S = new Uint32Array(
   [4, 1, (ss = t = 2), 3].map(i =>
-    parseInt('0x8571027db178A535d56335A3b0580abd2fF29274'.substr(i * 8, 8), 16),
+    parseInt('0x8888888888888888888888888888888888888888'.substr(i * 8, 8), 16),
   ),
 )
-R = _ => (
-  (t = S[3]),
-  (S[3] = S[2]),
-  (S[2] = S[1]),
-  (S[1] = ss = S[0]),
-  (t ^= t << 11),
-  (S[0] ^= t ^ (t >>> 8) ^ (ss >>> 19)),
-  S[0] / 2 ** 32
-)
+
+export let setSeed = seed => {
+  S = [1e5 * seed, 2e5 * seed, 3e5 * seed, 4e5 * seed]
+  // S.map(i => i * 1e8).map(i => {
+  //   i ^= i << 13
+  //   i ^= i >>> 17
+  //   i ^= i << 5
+  // })
+}
+
+R = _ => {
+  return (
+    (t = S[3]),
+    (S[3] = S[2]),
+    (S[2] = S[1]),
+    (S[1] = ss = S[0]),
+    (t ^= t << 11),
+    (S[0] ^= t ^ (t >>> 8) ^ (ss >>> 19)),
+    S[0] / 2 ** 32
+  )
+}
 ;('tx piter')
 export let F = (n, f) => [...Array(n | 0)].map((_, i) => f(i))
 export let rot = (x, y, angle) => {

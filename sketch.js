@@ -1,5 +1,5 @@
 import {abc} from './abc.js'
-import {R, F, rot, vmul, sscale, strans, srot, PI} from './helpers.js'
+import {R, setSeed, F, rot, vmul, sscale, strans, srot, PI} from './helpers.js'
 // UI
 ////{{{
 const pane = new Tweakpane.Pane()
@@ -10,22 +10,33 @@ let PARAMS = {
   contourDensity: 1,
   zoom: 1,
 }
-pane.addInput(PARAMS, 'strokeWeight', {min: 0, max: 1}).on('change', () => {
-  updateStrokeWeight()
-})
-pane.addInput(PARAMS, 'moduleSize', {min: 0.1, max: 20}).on('change', () => {
-  resizeModule()
-  updateStrokeWeight()
-  updateShapes()
-  drawShapes()
-})
+pane
+  .addInput(PARAMS, 'strokeWeight', {min: 0, max: 1, label: 'Weight'})
+  .on('change', () => {
+    updateStrokeWeight()
+  })
+pane
+  .addInput(PARAMS, 'moduleSize', {min: 0.1, max: 20, label: 'Size'})
+  .on('change', () => {
+    resizeModule()
+    updateStrokeWeight()
+    updateShapes()
+    drawShapes()
+  })
 // pane.addInput(PARAMS, 'zoom', {min: 0.1, max: 10}).on('change', () => {
 // })
-pane.addInput(PARAMS, 'contourDensity', {min: 0.1, max: 1}).on('change', () => {
+pane
+  .addInput(PARAMS, 'contourDensity', {min: 0, max: 1, label: 'Density'})
+  .on('change', () => {
+    updateShapes()
+    drawShapes()
+  })
+pane.addButton({title: 'Randomize'}).on('click', () => {
+  seed = Math.random()
   updateShapes()
   drawShapes()
 })
-pane.addButton({title: 'save svg'}).on('click', () => {
+pane.addButton({title: 'Save SVG'}).on('click', () => {
   // updateShapes('noBrush')
   updateShapes('noBrush')
   drawShapes()
@@ -34,6 +45,7 @@ pane.addButton({title: 'save svg'}).on('click', () => {
 ////}}}
 
 let svg = document.querySelector('svg')
+let seed = 100
 let viewportOrigin = [0, 0]
 let gOrigin = [0, 0]
 let [mouseX, mouseY] = [0, 0]
@@ -60,7 +72,6 @@ let height = 800
 // let g = F(N, j => F(N, i => ((i + j) % 8 === 0 ? 'F' : undefined)))
 let g = F(N, _ => F(N, _ => undefined))
 let currentLetter = '.'
-let seed = 0
 let moduleTranslated
 
 //{{{
@@ -189,13 +200,20 @@ function unionShapes(shape1, shape2) {
 
 function drawShape(shape) {
   for (let c of shape) {
+    setSeed(seed + getCountourHash(c))
     if (R() > PARAMS.contourDensity) {
       continue
-      // drawContour(c, 0)
+      drawContour(c, 0)
     } else {
       drawContour(c, 1)
     }
   }
+}
+
+function getCountourHash(c) {
+  // let sum = 0
+  // c.map(p => p.map(x => (sum += x)))
+  return c[0][0] * 222222 + c[0][1] * 111111
 }
 
 function drawContour(contour, opacity = 1) {
