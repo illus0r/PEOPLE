@@ -26,6 +26,9 @@ pane.addInput(PARAMS, 'contourDensity', {min: 0.1, max: 1}).on('change', () => {
   drawShapes()
 })
 pane.addButton({title: 'save svg'}).on('click', () => {
+  // updateShapes('noBrush')
+  updateShapes('noBrush')
+  drawShapes()
   saveSVG(svg, 'PEOPLE.svg')
 })
 ////}}}
@@ -80,7 +83,7 @@ function drawShapes() {
   shapes.map(s => drawShape(s))
 }
 
-function updateShapes() {
+function updateShapes(mode) {
   let gJustFilled = F(g.length, j => F(g[0].length, i => 0))
   shapes = [[], [], [], []]
 
@@ -97,7 +100,10 @@ function updateShapes() {
       J -= mouseJ
       ;[I, J] = [I / 2, J / 2]
       ;[I, J] = [I - J, J + I]
-      if ((letterMatrix[J] && letterMatrix[J][I]) || g[j][i]) {
+      if (
+        (letterMatrix[J] && letterMatrix[J][I] && mode != 'noBrush') ||
+        g[j][i]
+      ) {
         // so not to run expensive union for them all
         let justFilledIsNear = false
         let R = Math.ceil(PARAMS.moduleSize * 2)
@@ -325,11 +331,12 @@ function handleMouseUp(e) {
 }
 
 function gExtend(i, j) {
+  let margin = 8
   // if i>g[0].length, add more columns
   if (i >= g[0].length) {
     let di = i - g[0].length
     g.forEach(row => {
-      for (let k = 0; k <= di; k++) {
+      for (let k = 0; k < di + margin; k++) {
         row.push(undefined)
       }
     })
@@ -337,7 +344,7 @@ function gExtend(i, j) {
   // if j>g.length, add more rows
   if (j >= g.length) {
     let dj = j - g.length
-    for (let k = 0; k <= dj; k++) {
+    for (let k = 0; k < dj + margin; k++) {
       g.push(F(g[0].length, () => undefined))
     }
   }
@@ -345,19 +352,19 @@ function gExtend(i, j) {
   if (i < 0) {
     let di = Math.abs(i)
     g.forEach(row => {
-      for (let k = 0; k < di; k++) {
+      for (let k = 0; k < di + margin; k++) {
         row.unshift(undefined)
       }
     })
-    gOrigin[0] -= di
+    gOrigin[0] -= di + margin
   }
   // if j<0, add more rows
   if (j < 0) {
     let dj = Math.abs(j)
-    for (let k = 0; k < dj; k++) {
+    for (let k = 0; k < dj + margin; k++) {
       g.unshift(F(g[0].length, () => undefined))
     }
-    gOrigin[1] -= dj
+    gOrigin[1] -= dj + margin
   }
 }
 
@@ -406,7 +413,6 @@ document.addEventListener('keydown', e => {
   // if in abc, set as current letter
   if (Object.keys(abc).includes(e.key.toUpperCase())) {
     currentLetter = e.key.toUpperCase()
-    console.log('currentLetter:', currentLetter)
     updateShapes()
     drawShapes()
   }
