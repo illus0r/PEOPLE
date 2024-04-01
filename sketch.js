@@ -32,7 +32,7 @@ pane
     drawShapes()
   })
 pane.addButton({title: 'Randomize'}).on('click', () => {
-  seed = Math.random()
+  seed = Math.random() * 888
   updateShapes()
   drawShapes()
 })
@@ -200,7 +200,10 @@ function unionShapes(shape1, shape2) {
 
 function drawShape(shape) {
   for (let c of shape) {
-    setSeed(seed + getCountourHash(c))
+    let hash = getCountourHash(c)
+    setSeed(seed + hash)
+    console.log('hash:', hash)
+    console.log('seed:', seed)
     if (R() > PARAMS.contourDensity) {
       continue
       drawContour(c, 0)

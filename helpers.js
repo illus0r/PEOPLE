@@ -1,4 +1,3 @@
-export let R
 let S, t, i, ss
 S = new Uint32Array(
   [4, 1, (ss = t = 2), 3].map(i =>
@@ -6,27 +5,17 @@ S = new Uint32Array(
   ),
 )
 
-export let setSeed = seed => {
-  S = [1e5 * seed, 2e5 * seed, 3e5 * seed, 4e5 * seed]
-  // S.map(i => i * 1e8).map(i => {
-  //   i ^= i << 13
-  //   i ^= i >>> 17
-  //   i ^= i << 5
-  // })
+let seed = 1
+
+export function setSeed(s) {
+  seed = s
 }
 
-R = _ => {
-  return (
-    (t = S[3]),
-    (S[3] = S[2]),
-    (S[2] = S[1]),
-    (S[1] = ss = S[0]),
-    (t ^= t << 11),
-    (S[0] ^= t ^ (t >>> 8) ^ (ss >>> 19)),
-    S[0] / 2 ** 32
-  )
+export function R() {
+  const x = Math.sin(seed++) * 10000
+  return x - Math.floor(x)
 }
-;('tx piter')
+
 export let F = (n, f) => [...Array(n | 0)].map((_, i) => f(i))
 export let rot = (x, y, angle) => {
   let c = Math.cos(angle),
