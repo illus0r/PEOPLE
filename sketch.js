@@ -11,30 +11,23 @@ let PARAMS = {
   zoom: 1,
 }
 pane.addInput(PARAMS, 'strokeWeight', {min: 0, max: 1}).on('change', () => {
-  // strokeWeight(PARAMS.strokeWeight)
   updateStrokeWeight()
 })
 pane.addInput(PARAMS, 'moduleSize', {min: 0.1, max: 20}).on('change', () => {
-  resizeModule(PARAMS.moduleSize)
+  resizeModule()
   updateStrokeWeight()
   updateShapes()
   drawShapes()
 })
-pane.addInput(PARAMS, 'zoom', {min: 0.1, max: 10})
+// pane.addInput(PARAMS, 'zoom', {min: 0.1, max: 10}).on('change', () => {
+// })
 pane.addInput(PARAMS, 'contourDensity', {min: 0.1, max: 1}).on('change', () => {
   updateShapes()
   drawShapes()
 })
-//buttons
-pane.addButton({title: 'randomize'}).on('click', () => {})
-// save svg
 pane.addButton({title: 'save svg'}).on('click', () => {
   saveSVG(svg, 'PEOPLE.svg')
 })
-////}}}
-
-// Helpers
-//{{{
 ////}}}
 
 let svg = document.querySelector('svg')
@@ -63,8 +56,6 @@ let height = 800
 // checkmate
 // let g = F(N, j => F(N, i => ((i + j) % 8 === 0 ? 'F' : undefined)))
 let g = F(N, _ => F(N, _ => undefined))
-g[2][2] = 'F'
-g[3][3] = 'F'
 let currentLetter = '.'
 let seed = 0
 let moduleTranslated
@@ -74,15 +65,15 @@ let moduleTranslated
 let shapes = [[], [], [], []]
 let brush
 
-function resizeModule(moduleSize = 2) {
+function resizeModule() {
   brush = [
-    sscale([sqr], (0.999 * gridSize * moduleSize * 0.5) / 4),
-    sscale([sqr], (0.999 * gridSize * moduleSize * 1.5) / 4),
-    sscale([sqr], (0.999 * gridSize * moduleSize * 2.5) / 4),
-    sscale([sqr], (0.999 * gridSize * moduleSize * 3.5) / 4),
+    sscale([sqr], (0.999 * gridSize * PARAMS.moduleSize * PARAMS.zoom * 0.5) / 4),
+    sscale([sqr], (0.999 * gridSize * PARAMS.moduleSize * PARAMS.zoom * 1.5) / 4),
+    sscale([sqr], (0.999 * gridSize * PARAMS.moduleSize * PARAMS.zoom * 2.5) / 4),
+    sscale([sqr], (0.999 * gridSize * PARAMS.moduleSize * PARAMS.zoom * 3.5) / 4),
   ]
 }
-resizeModule(PARAMS.moduleSize)
+resizeModule()
 
 function drawShapes() {
   svg.innerHTML = ''
@@ -100,8 +91,12 @@ function updateShapes() {
 
   for (let j = 0; j < g.length; j++) {
     for (let i = 0; i < g[0].length; i++) {
-      let I = i - mouseI
-      let J = j - mouseJ
+      let I = i // + j
+      let J = j // - i
+      I -= mouseI
+      J -= mouseJ
+      ;[I, J] = [I / 2, J / 2]
+      ;[I, J] = [I - J, J + I]
       if ((letterMatrix[J] && letterMatrix[J][I]) || g[j][i]) {
         // so not to run expensive union for them all
         let justFilledIsNear = false
@@ -142,6 +137,8 @@ function appendModuleToShapes(i, j) {
 function xy2ij(x, y) {
   let X = x + viewportOrigin[0]
   let Y = y + viewportOrigin[1]
+  X /= PARAMS.zoom
+  Y /= PARAMS.zoom
   // X -= width / 2
   // Y -= height / 2
   // ;[X, Y] = rot(X, Y, PI / 4)
@@ -156,8 +153,8 @@ function xy2ij(x, y) {
 function ij2xy(i, j) {
   i += gOrigin[0]
   j += gOrigin[1]
-  let x = i * gridSize - viewportOrigin[0]
-  let y = j * gridSize - viewportOrigin[1]
+  let x = i * gridSize * PARAMS.zoom - viewportOrigin[0]
+  let y = j * gridSize * PARAMS.zoom - viewportOrigin[1]
   return [x, y]
 }
 
@@ -242,7 +239,7 @@ window.addEventListener('resize', resize)
 function updateStrokeWeight() {
   svg.setAttribute(
     'stroke-width',
-    ((PARAMS.strokeWeight * PARAMS.moduleSize) / 4) * gridSize,
+    ((PARAMS.strokeWeight * PARAMS.moduleSize * PARAMS.zoom) / 4) * gridSize,
   )
 }
 
@@ -310,8 +307,8 @@ function handleMouseUp(e) {
     mouseJ -= (letterMatrix.length / 2) | 0
     for (let j = 0; j < letterMatrix.length; j++) {
       for (let i = 0; i < letterMatrix[j].length; i++) {
-        let I = i
-        let J = j
+        let I = i + j
+        let J = j - i
         if (letterMatrix[j][i]) {
           if (e.shiftKey) {
             g[J + mouseJ][I + mouseI] = undefined
@@ -379,3 +376,38 @@ svg.addEventListener('touchstart', handleMouseDown)
 svg.addEventListener('touchmove', handleMouseMove)
 svg.addEventListener('touchend', handleMouseUp)
 svg.addEventListener('touchcancel', handleMouseLeave)
+
+// scroll with wheel, consider mouseX and mouseY
+svg.addEventListener('wheel', e => {
+  if (e.deltaY > 0) {
+    viewportOrigin[0] += mouseX
+    viewportOrigin[1] += mouseY
+    PARAMS.zoom *= 1.1
+    viewportOrigin[0] *= 1.1
+    viewportOrigin[1] *= 1.1
+    viewportOrigin[0] -= mouseX
+    viewportOrigin[1] -= mouseY
+  } else {
+    viewportOrigin[0] += mouseX
+    viewportOrigin[1] += mouseY
+    PARAMS.zoom /= 1.1
+    viewportOrigin[0] /= 1.1
+    viewportOrigin[1] /= 1.1
+    viewportOrigin[0] -= mouseX
+    viewportOrigin[1] -= mouseY
+  }
+  resizeModule()
+  updateStrokeWeight()
+  updateShapes()
+  drawShapes()
+})
+
+document.addEventListener('keydown', e => {
+  // if in abc, set as current letter
+  if (Object.keys(abc).includes(e.key.toUpperCase())) {
+    currentLetter = e.key.toUpperCase()
+    console.log('currentLetter:', currentLetter)
+    updateShapes()
+    drawShapes()
+  }
+})
