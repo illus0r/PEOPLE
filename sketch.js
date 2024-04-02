@@ -3,11 +3,21 @@ import {R, setSeed, F, rot, vmul, sscale, strans, srot, PI} from './helpers.js'
 // UI
 ////{{{
 const pane = new Tweakpane.Pane()
+pane.registerPlugin(TweakpaneInfodumpPlugin)
+pane.addBlade({
+  view: 'infodump',
+  content: F(
+    100 + 100 * Math.random(),
+    i => 'P E O P L E '[(Math.random() * 12) | 0],
+  ).join``,
+  border: false,
+  markdown: true,
+})
 
 let PARAMS = {
   strokeWeight: 0.1,
   moduleSize: 2,
-  contourDensity: 1,
+  contourDensity: 0.8,
   zoom: 1,
 }
 pane
@@ -31,7 +41,7 @@ pane
     updateShapes()
     drawShapes()
   })
-pane.addButton({title: 'Randomize'}).on('click', () => {
+pane.addButton({title: 'Randomize density'}).on('click', () => {
   seed = Math.random() * 888
   updateShapes()
   drawShapes()
@@ -42,7 +52,53 @@ pane.addButton({title: 'Save SVG'}).on('click', () => {
   drawShapes()
   saveSVG(svg, 'PEOPLE.svg')
 })
-////}}}
+
+const folder = pane.addFolder({
+  title: 'What is it and how it works',
+  expanded: true,
+})
+const helpText = `
+# Inspiration
+The typographic composition <a href="https://www.unicode.org/emoji/charts/full-emoji-list.html">PEOPLE</a> made by Denis Bashev
+
+# Controls
+Press A…Z to switch letters.
+
+Press dot to draw square by square.
+
+Hold _shift_ to erase
+
+Drag mouse to pan
+
+Scroll to zoom.
+
+When you save an SVG, it includes all the shapes, but some of them may be outside the viewport.
+
+At low _density_, some lines will be invisible. You can get them back in your favorite SVG editor.
+—
+
+# Lorem Ipsum
+
+The text here is illegible. Here's some Lorem Ipsum to make sure:
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed vel mi elit. Sed vitae nunc id magna dictum sodales. Interdum et malesuada fames ac ante ipsum primis in faucibus. Pellentesque massa felis, cursus nec risus vehicula, euismod efficitur massa. Donec gravida viverra erat eget finibus. Maecenas venenatis quam ut nisi luctus, sed fermentum erat mattis. Proin at metus interdum, congue massa tristique, eleifend ante. Donec condimentum massa et tellus congue, eget aliquam sem consequat. Sed sit amet consequat libero, ut faucibus ligula. Nam sodales tempor quam, at consequat tortor. Donec ipsum nunc, maximus sed enim dapibus, convallis aliquet felis. Etiam ut ante turpis.
+
+Aliquam aliquam mi eleifend faucibus suscipit. In eget erat a dolor faucibus cursus tempor a augue. Maecenas sit amet dapibus lectus, eget congue nulla. Praesent semper vel nisl sit amet elementum. Nullam tincidunt nisi sit amet nunc cursus ultrices. Maecenas nisl massa, fringilla at velit sed, feugiat congue lacus. Cras finibus enim ut nibh tincidunt posuere a nec lorem. Praesent lobortis a nibh id tempor. Vivamus venenatis nisl et enim porttitor, at tristique erat faucibus. Ut justo magna, sollicitudin lobortis ultrices quis, condimentum vitae nibh. Sed ut lorem neque. In ut eros velit. Sed at velit iaculis, fringilla metus vel, ullamcorper urna. Nullam consectetur nisi eget diam scelerisque, et iaculis enim vehicula. Praesent ultrices dolor sem, a consectetur magna aliquam in. Sed eget pellentesque ante, a mollis mauris.
+
+Phasellus vitae lorem feugiat leo placerat congue sit amet eu turpis. Aenean efficitur bibendum dictum. Sed at odio bibendum lorem ullamcorper porttitor. Sed sed gravida nibh, porta cursus quam. Ut non semper sem. Fusce ut euismod quam. Vestibulum dui ante, gravida non volutpat eget, finibus non nulla. Aliquam ultrices scelerisque lorem, sed varius nisl. Maecenas iaculis nunc in velit tempor commodo. Nunc non quam ligula. Morbi in pharetra nulla.
+
+Suspendisse facilisis est ac justo congue tincidunt. Nullam suscipit tempus volutpat. Nunc aliquam efficitur quam eget pretium. Duis ex tortor, luctus et fermentum ut, eleifend ac nisl. Pellentesque ultricies odio et bibendum tempor. Nulla iaculis nec enim eget dictum. Nulla quis urna porttitor, lobortis sapien in, efficitur libero. Sed eleifend vehicula felis, vel efficitur sem molestie et.
+
+Donec fringilla vulputate libero non aliquam. Sed eget accumsan leo, sit amet ullamcorper ipsum. Quisque consectetur libero at rhoncus lacinia. Quisque et posuere tellus. Etiam ac viverra mauris. Pellentesque porta lorem ac ultricies porttitor. Sed at mauris in mauris bibendum elementum quis vel lorem. Aliquam libero urna, rhoncus a porta quis, imperdiet eget sapien. Proin sit amet vulputate tellus. Sed libero enim, molestie vitae varius sit amet, commodo quis nibh. Nunc posuere ipsum ultrices nunc sagittis lobortis. Maecenas ut dui tellus. Morbi mollis lacus nec fermentum suscipit.
+`
+folder.addBlade({
+  view: 'infodump',
+  content: helpText,
+  border: false,
+  markdown: true,
+})
+
+//}}}
 
 let svg = document.querySelector('svg')
 let seed = 100
@@ -202,8 +258,6 @@ function drawShape(shape) {
   for (let c of shape) {
     let hash = getCountourHash(c)
     setSeed(seed + hash)
-    console.log('hash:', hash)
-    console.log('seed:', seed)
     if (R() > PARAMS.contourDensity) {
       continue
       drawContour(c, 0)
@@ -216,7 +270,10 @@ function drawShape(shape) {
 function getCountourHash(c) {
   // let sum = 0
   // c.map(p => p.map(x => (sum += x)))
-  return c[0][0] * 222222 + c[0][1] * 111111
+  return (
+    (c[0][0] + viewportOrigin[0]) * 222222 +
+    (c[0][1] + viewportOrigin[1]) * 111111
+  )
 }
 
 function drawContour(contour, opacity = 1) {
@@ -242,14 +299,6 @@ document.onmousemove = e => {
   updateShapes()
   drawShapes()
 }
-
-//}}}
-//   text('To switch a letter, press A…Z', 10, 30)
-//   text('To change the stroke weight, use ← and → arrow keys', 10, 60)
-//   text('To change the pattern size, scroll ↑ ↓', 10, 90)
-//   text('To erace the letter, hold the shift key', 10, 120)
-//   text('To randomize the pattern, press space', 10, 150)
-//   text('To change the amount of contours, use ↑ ↓ arrow keys', 10, 180)
 
 svg.setAttribute('stroke', '#fff')
 
