@@ -55,11 +55,13 @@ pane.addButton({title: 'Save SVG'}).on('click', () => {
 
 const folder = pane.addFolder({
   title: 'What is it and how it works',
-  expanded: true,
+  expanded: false,
 })
 const helpText = `
+**Hi! This is a design tool. It makes graphics. For example, typographics. And saves it in SVG format.**
+
 # Inspiration
-The typographic composition <a href="https://www.unicode.org/emoji/charts/full-emoji-list.html">PEOPLE</a> made by Denis Bashev
+The thing is based on the typographic composition <a href="https://www.instagram.com/p/CevtKVQLrid/?igsh=a3VpbHg0cmVmYnE5">PEOPLE</a> by Denis Bashev.
 
 # Controls
 Press A…Z to switch letters.
