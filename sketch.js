@@ -81,7 +81,7 @@ At low _density_, some lines will be invisible. You can get them back in your fa
 
 # Lorem Ipsum
 
-The text here is illegible. Here's some Lorem Ipsum to make sure:
+The text in this sidebar is illegible. Here is a bit of Lorem Ipsum so you can make sure of this:
 
 Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed vel mi elit. Sed vitae nunc id magna dictum sodales. Interdum et malesuada fames ac ante ipsum primis in faucibus. Pellentesque massa felis, cursus nec risus vehicula, euismod efficitur massa. Donec gravida viverra erat eget finibus. Maecenas venenatis quam ut nisi luctus, sed fermentum erat mattis. Proin at metus interdum, congue massa tristique, eleifend ante. Donec condimentum massa et tellus congue, eget aliquam sem consequat. Sed sit amet consequat libero, ut faucibus ligula. Nam sodales tempor quam, at consequat tortor. Donec ipsum nunc, maximus sed enim dapibus, convallis aliquet felis. Etiam ut ante turpis.
 
