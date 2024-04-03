@@ -114,13 +114,6 @@ let sqr = [
   [-1, 0],
 ]
 
-// let sqr = [
-//   [-1, -1],
-//   [1, -1],
-//   [1, 1],
-//   [-1, 1],
-// ]
-
 let N = 40
 let gridSize = 15
 let width = N * gridSize // / Math.sqrt(2)
@@ -131,8 +124,6 @@ let height = 800
 let g = F(N, _ => F(N, _ => undefined))
 let currentLetter = '.'
 let moduleTranslated
-
-//{{{
 
 let shapes = [[], [], [], []]
 let brush
