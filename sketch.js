@@ -5,11 +5,12 @@ const pane = new Tweakpane.Pane()
 pane.registerPlugin(TweakpaneInfodumpPlugin)
 pane.addBlade({
   view: 'infodump',
-  content: `### ### ### ### #   ###
-# # #   # # # # #   #
-### ### # # ### #   ###
-#   #   # # #   #   #  
-#   ### ### #   ### ###`
+  content: `
+###  ###  ###  ###  #   ###
+# #  #    # #  # #  #   #
+###  ###  # #  ###  #   ###
+#    #    # #  #    #   #  
+#    ###  ###  #    ### ###`
     .split('')
     .map(d => {
       if (d === ' ') return '&nbsp;'
