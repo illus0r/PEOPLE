@@ -389,6 +389,9 @@ function handleMouseUp(e) {
     let [mouseI, mouseJ] = xy2ij(mouseX, mouseY)
     mouseI -= (letterMatrix[0].length / 2) | 0
     mouseJ -= (letterMatrix.length / 2) | 0
+    let gOriginPrev = [...gOrigin]
+    gExtend(mouseI, mouseJ)
+    let d = [gOrigin[0] - gOriginPrev[0], gOrigin[1] - gOriginPrev[1]]
     for (let j = 0; j < letterMatrix.length; j++) {
       for (let i = 0; i < letterMatrix[j].length; i++) {
         let I = i + j
@@ -397,8 +400,7 @@ function handleMouseUp(e) {
           if (e.shiftKey) {
             g[J + mouseJ][I + mouseI] = undefined
           } else {
-            gExtend(I + mouseI, J + mouseJ)
-            g[J + mouseJ][I + mouseI] = currentLetter
+            g[J + mouseJ - d[1]][I + mouseI - d[0]] = currentLetter
           }
         }
       }
@@ -409,7 +411,7 @@ function handleMouseUp(e) {
 }
 
 function gExtend(i, j) {
-  let margin = 8
+  let margin = 12
   // if i>g[0].length, add more columns
   if (i >= g[0].length) {
     let di = i - g[0].length
