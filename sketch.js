@@ -1,7 +1,6 @@
 import {abc} from './abc.js'
 import {R, setSeed, F, rot, vmul, sscale, strans, srot, PI} from './helpers.js'
-// UI
-////{{{
+////{{{ Tweakpane
 const pane = new Tweakpane.Pane()
 pane.registerPlugin(TweakpaneInfodumpPlugin)
 pane.addBlade({
@@ -17,8 +16,7 @@ pane.addBlade({
 let PARAMS = {
   strokeWeight: 0.1,
   moduleSize: 2,
-  contourDensity: 0.8,
-  zoom: 1,
+  contourDensity: 0.95,
 }
 pane
   .addInput(PARAMS, 'strokeWeight', {min: 0, max: 1, label: 'Weight'})
@@ -33,8 +31,6 @@ pane
     updateShapes()
     drawShapes()
   })
-// pane.addInput(PARAMS, 'zoom', {min: 0.1, max: 10}).on('change', () => {
-// })
 pane
   .addInput(PARAMS, 'contourDensity', {min: 0, max: 1, label: 'Density'})
   .on('change', () => {
@@ -104,6 +100,7 @@ folder.addBlade({
 
 let svg = document.querySelector('svg')
 let seed = 100
+let zoom = 20
 let viewportOrigin = [0, 0]
 let gOrigin = [0, 0]
 let [mouseX, mouseY] = [0, 0]
@@ -115,7 +112,7 @@ let sqr = [
 ]
 
 let N = 40
-let gridSize = 15
+let gridSize = 1
 let width = N * gridSize // / Math.sqrt(2)
 let height = 800
 // let g = F(N, j => F(N, i => (R() > 0.02 ? undefined : 'F')))
@@ -130,10 +127,10 @@ let brush
 
 function resizeModule() {
   brush = [
-    sscale([sqr], (0.999 * gridSize * PARAMS.moduleSize * PARAMS.zoom * 0.5) / 4),
-    sscale([sqr], (0.999 * gridSize * PARAMS.moduleSize * PARAMS.zoom * 1.5) / 4),
-    sscale([sqr], (0.999 * gridSize * PARAMS.moduleSize * PARAMS.zoom * 2.5) / 4),
-    sscale([sqr], (0.999 * gridSize * PARAMS.moduleSize * PARAMS.zoom * 3.5) / 4),
+    sscale([sqr], (0.999 * gridSize * PARAMS.moduleSize * 0.5) / 4),
+    sscale([sqr], (0.999 * gridSize * PARAMS.moduleSize * 1.5) / 4),
+    sscale([sqr], (0.999 * gridSize * PARAMS.moduleSize * 2.5) / 4),
+    sscale([sqr], (0.999 * gridSize * PARAMS.moduleSize * 3.5) / 4),
   ]
 }
 resizeModule()
@@ -161,7 +158,7 @@ function updateShapes(mode) {
       ;[I, J] = [I / 2, J / 2]
       ;[I, J] = [I - J, J + I]
       if (
-        (letterMatrix[J] && letterMatrix[J][I] && mode != 'noBrush') ||
+        // (letterMatrix[J] && letterMatrix[J][I] && mode != 'noBrush') ||
         g[j][i]
       ) {
         // so not to run expensive union for them all
@@ -198,30 +195,6 @@ function appendModuleToShapes(i, j) {
   let [x, y] = ij2xy(i, j)
   moduleTranslated = brush.map(s => strans(s, [x, y]))
   shapes = shapes.map((s, i) => s.concat(moduleTranslated[i]))
-}
-
-function xy2ij(x, y) {
-  let X = x + viewportOrigin[0]
-  let Y = y + viewportOrigin[1]
-  X /= PARAMS.zoom
-  Y /= PARAMS.zoom
-  // X -= width / 2
-  // Y -= height / 2
-  // ;[X, Y] = rot(X, Y, PI / 4)
-  // ;[X, Y] = vmul([X, Y], 1 / Math.sqrt(2))
-  // X += width / 2
-  // Y += height / 2
-  let i = Math.floor(X / gridSize + 0.5) - gOrigin[0]
-  let j = Math.floor(Y / gridSize + 0.5) - gOrigin[1]
-  return [i, j]
-}
-
-function ij2xy(i, j) {
-  i += gOrigin[0]
-  j += gOrigin[1]
-  let x = i * gridSize * PARAMS.zoom - viewportOrigin[0]
-  let y = j * gridSize * PARAMS.zoom - viewportOrigin[1]
-  return [x, y]
 }
 
 function unionShapes(shape1, shape2) {
@@ -285,12 +258,34 @@ function drawContour(contour, opacity = 1) {
   svg.innerHTML += path
 }
 
-document.onmousemove = e => {
+addEventListener('mousemove', e => {
   ;[mouseX, mouseY] = [e.clientX, e.clientY]
+  // let [mouseI, mouseJ] = xy2ij(mouseX, mouseY)
+  // gExtend(mouseI, mouseJ)
+  // updateShapes()
+  // drawShapes()
+  // drawBrush()
+})
+
+function drawBrush() {
+  // remove all elements with class .brush
+  const brushElements = svg.querySelectorAll('.brush')
+  for (let i = 0; i < brushElements.length; i++) {
+    brushElements[i].remove()
+  }
+  // add brush at mouse position
   let [mouseI, mouseJ] = xy2ij(mouseX, mouseY)
-  gExtend(mouseI, mouseJ)
-  updateShapes()
-  drawShapes()
+  let [x, y] = ij2xy(mouseI, mouseJ)
+  let sz = gridSize * zoom
+  // made d for path
+  let d = ''
+  d += ` M ${x} ${y - sz}`
+  d += ` L ${x + sz} ${y}`
+  d += ` L ${x} ${y + sz}`
+  d += ` L ${x - sz} ${y}`
+  d += ` Z`
+  // add rombus dotted stroke
+  svg.innerHTML += `<path fill="none" stroke stroke-width="1" stroke-dasharray="5,5" class="brush" d="${d}" />`
 }
 
 svg.setAttribute('stroke', '#fff')
@@ -300,16 +295,13 @@ function resize() {
   height = window.innerHeight
   svg.setAttribute('width', width)
   svg.setAttribute('height', height)
-  svg.setAttribute('viewBox', `0 0 ${width} ${height}`)
+  updateViewBox()
 }
 resize()
 window.addEventListener('resize', resize)
 
 function updateStrokeWeight() {
-  svg.setAttribute(
-    'stroke-width',
-    ((PARAMS.strokeWeight * PARAMS.moduleSize * PARAMS.zoom) / 4) * gridSize,
-  )
+  svg.setAttribute('stroke-width', (PARAMS.strokeWeight * PARAMS.moduleSize) / 4)
 }
 
 // print g
@@ -356,13 +348,23 @@ function handleMouseDown(e) {
 
 function handleMouseMove(event) {
   if (isDown) {
+    // mouse drag
     let currentX = event.clientX || event.touches[0].clientX
     let currentY = event.clientY || event.touches[0].clientY
-    viewportOrigin[0] -= currentX - prevX
-    viewportOrigin[1] -= currentY - prevY
+    viewportOrigin[0] -= (currentX - prevX) / zoom
+    viewportOrigin[1] -= (currentY - prevY) / zoom
     prevX = currentX
     prevY = currentY
   }
+  updateViewBox()
+}
+
+function updateViewBox() {
+  // consider viewportOrigin and zoom
+  svg.setAttribute(
+    'viewBox',
+    `${viewportOrigin[0]} ${viewportOrigin[1]} ${width / zoom} ${height / zoom}`,
+  )
 }
 
 function handleMouseUp(e) {
@@ -370,6 +372,7 @@ function handleMouseUp(e) {
   let endX = e.clientX || e.changedTouches[0].clientX
   let endY = e.clientY || e.changedTouches[0].clientY
   if (Math.hypot(endX - startX, endY - startY) < drugThreshold) {
+    // mouse click
     let letterMatrix = abc[currentLetter]
     let [mouseI, mouseJ] = xy2ij(mouseX, mouseY)
     mouseI -= (letterMatrix[0].length / 2) | 0
@@ -447,30 +450,54 @@ svg.addEventListener('touchmove', handleMouseMove)
 svg.addEventListener('touchend', handleMouseUp)
 svg.addEventListener('touchcancel', handleMouseLeave)
 
+let vadd=(a,b)=>a.map((d,i)=>d+b[i])
+let vsub=(a,b)=>a.map((d,i)=>d-b[i])
 // scroll with wheel, consider mouseX and mouseY
 svg.addEventListener('wheel', e => {
+  let cx = (0.5 * width) / zoom + viewportOrigin[0]
+  console.log('cx:', cx)
+  console.log('viewportOrigin[0]:', viewportOrigin[0])
+  let cy = (0.5 * height) / zoom + viewportOrigin[1]
+	let 
   if (e.deltaY > 0) {
-    viewportOrigin[0] += mouseX
-    viewportOrigin[1] += mouseY
-    PARAMS.zoom *= 1.1
-    viewportOrigin[0] *= 1.1
-    viewportOrigin[1] *= 1.1
-    viewportOrigin[0] -= mouseX
-    viewportOrigin[1] -= mouseY
+    // viewportOrigin[0] = (cx + viewportOrigin[0]) / 2
+    // viewportOrigin[1] = (cy + viewportOrigin[1]) / 2
+    viewportOrigin[0] += 60 / zoom
+    viewportOrigin[1] += 60 / zoom
+    zoom *= 1.1
   } else {
-    viewportOrigin[0] += mouseX
-    viewportOrigin[1] += mouseY
-    PARAMS.zoom /= 1.1
-    viewportOrigin[0] /= 1.1
-    viewportOrigin[1] /= 1.1
-    viewportOrigin[0] -= mouseX
-    viewportOrigin[1] -= mouseY
+    // viewportOrigin[0] -= x - viewportOrigin[0]
+    // viewportOrigin[1] -= y - viewportOrigin[1]
+    zoom /= 1.1
+    viewportOrigin[0] -= 60 / zoom
+    viewportOrigin[1] -= 60 / zoom
   }
-  resizeModule()
-  updateStrokeWeight()
-  updateShapes()
-  drawShapes()
+  console.log('zoom:', zoom)
+  updateViewBox()
 })
+
+// // scroll with wheel, consider mouseX and mouseY
+// svg.addEventListener('wheel', e => {
+//   if (e.deltaY > 0) {
+//     viewportOrigin[0] -= mouseX / width / zoom
+//     viewportOrigin[1] -= mouseY / height / zoom
+//     zoom *= 1.1
+//     // viewportOrigin[0] /= 1.1
+//     // viewportOrigin[1] /= 1.1
+//     viewportOrigin[0] += mouseX / width / zoom
+//     viewportOrigin[1] += mouseY / height / zoom
+//   } else {
+//     viewportOrigin[0] -= mouseX / width / zoom
+//     viewportOrigin[1] -= mouseY / height / zoom
+//     zoom /= 1.1
+//     // viewportOrigin[0] *= 1.1
+//     // viewportOrigin[1] *= 1.1
+//     viewportOrigin[0] += mouseX / width / zoom
+//     viewportOrigin[1] += mouseY / height / zoom
+//   }
+//   console.log('zoom:', zoom)
+//   updateViewBox()
+// })
 
 document.addEventListener('keydown', e => {
   // if in abc, set as current letter
@@ -480,3 +507,22 @@ document.addEventListener('keydown', e => {
     drawShapes()
   }
 })
+
+function ij2xy(i, j) {
+  i += gOrigin[0]
+  j += gOrigin[1]
+  let x = i
+  let y = j
+  return [x, y]
+}
+
+function xy2ij(x, y) {
+  x /= zoom
+  y /= zoom
+  x = x + viewportOrigin[0]
+  y = y + viewportOrigin[1]
+  let i = Math.floor(x + 0.5) - gOrigin[0]
+  let j = Math.floor(y + 0.5) - gOrigin[1]
+  return [i, j]
+}
+updateStrokeWeight()
