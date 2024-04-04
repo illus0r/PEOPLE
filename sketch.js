@@ -450,29 +450,32 @@ svg.addEventListener('touchmove', handleMouseMove)
 svg.addEventListener('touchend', handleMouseUp)
 svg.addEventListener('touchcancel', handleMouseLeave)
 
-let vadd=(a,b)=>a.map((d,i)=>d+b[i])
-let vsub=(a,b)=>a.map((d,i)=>d-b[i])
+let vadd = (a, b) => a.map((d, i) => d + b[i])
+let vsub = (a, b) => a.map((d, i) => d - b[i])
 // scroll with wheel, consider mouseX and mouseY
 svg.addEventListener('wheel', e => {
-  let cx = (0.5 * width) / zoom + viewportOrigin[0]
-  console.log('cx:', cx)
-  console.log('viewportOrigin[0]:', viewportOrigin[0])
-  let cy = (0.5 * height) / zoom + viewportOrigin[1]
-	let 
+  let C = [
+    ((mouseX / innerWidth) * width) / zoom,
+    ((mouseY / innerHeight) * height) / zoom,
+  ]
+  let k = 1.1
+  let p = [...viewportOrigin]
   if (e.deltaY > 0) {
-    // viewportOrigin[0] = (cx + viewportOrigin[0]) / 2
-    // viewportOrigin[1] = (cy + viewportOrigin[1]) / 2
-    viewportOrigin[0] += 60 / zoom
-    viewportOrigin[1] += 60 / zoom
-    zoom *= 1.1
+    p = vsub(p, viewportOrigin) // fixme p can be set to 0,0 instead
+    p = vsub(p, C)
+    p = vmul(p, 1 / k)
+    p = vadd(p, C)
+    p = vadd(p, viewportOrigin)
+    zoom *= k
   } else {
-    // viewportOrigin[0] -= x - viewportOrigin[0]
-    // viewportOrigin[1] -= y - viewportOrigin[1]
-    zoom /= 1.1
-    viewportOrigin[0] -= 60 / zoom
-    viewportOrigin[1] -= 60 / zoom
+    p = vsub(p, viewportOrigin) // fixme p can be set to 0,0 instead
+    p = vsub(p, C)
+    p = vmul(p, k)
+    p = vadd(p, C)
+    p = vadd(p, viewportOrigin)
+    zoom *= 1 / k
   }
-  console.log('zoom:', zoom)
+  viewportOrigin = p
   updateViewBox()
 })
 
