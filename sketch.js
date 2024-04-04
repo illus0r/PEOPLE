@@ -284,7 +284,7 @@ function drawBrush() {
       let J = j - i
       if (letterMatrix[j][i]) {
         let [x, y] = ij2xy(mouseI + I, mouseJ + J)
-        let sz = gridSize * PARAMS.moduleSize
+        let sz = (gridSize * PARAMS.moduleSize * 3.5) / 4
         // made d for path
         let d = ''
         d += ` M ${x} ${y - sz}`
