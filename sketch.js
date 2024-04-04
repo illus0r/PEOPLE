@@ -5,10 +5,18 @@ const pane = new Tweakpane.Pane()
 pane.registerPlugin(TweakpaneInfodumpPlugin)
 pane.addBlade({
   view: 'infodump',
-  content: F(
-    100 + 100 * Math.random(),
-    i => 'P E O P L E '[(Math.random() * 12) | 0],
-  ).join``,
+  content: `PPP EEE OOO PPP L   EEE
+P P E   O O P P L   E
+PPP EEE O O PPP L   EEE
+P   E   O O P   L   E  
+P   EEE OOO P   LLL EEE`
+    .split('')
+    .map(d => {
+      if (d === ' ') return '&nbsp;'
+      if (Math.random() > 0.5) return d
+      return d.toLowerCase()
+    })
+    .join(''),
   border: false,
   markdown: true,
 })
@@ -54,13 +62,14 @@ const folder = pane.addFolder({
   expanded: false,
 })
 const helpText = `
-**Hi! This is a design tool. It makes graphics. For example, typographics. And saves it in SVG format.**
+The generator is based on the typographic composition <a href="https://www.instagram.com/p/CevtKVQLrid/?igsh=a3VpbHg0cmVmYnE5">PEOPLE</a> by Denis Bashev.
 
-# Inspiration
-The thing is based on the typographic composition <a href="https://www.instagram.com/p/CevtKVQLrid/?igsh=a3VpbHg0cmVmYnE5">PEOPLE</a> by Denis Bashev.
+Made by [Ivan Dianov](https://ivandianov.com)
+Телеграм-канал: [@ivandianov](https://t.me/ivandianov)
+—
 
 # Controls
-Press A…Z to switch letters.
+Press A…Z to switch letters (most of them look like shit. Only P E O L are good)
 
 Press dot to draw square by square.
 
@@ -73,21 +82,7 @@ Scroll to zoom.
 When you save an SVG, it includes all the shapes, but some of them may be outside the viewport.
 
 At low _density_, some lines will be invisible. You can get them back in your favorite SVG editor.
-—
 
-# Lorem Ipsum
-
-The text in this sidebar is illegible. Here is a bit of Lorem Ipsum so you can make sure of this:
-
-Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed vel mi elit. Sed vitae nunc id magna dictum sodales. Interdum et malesuada fames ac ante ipsum primis in faucibus. Pellentesque massa felis, cursus nec risus vehicula, euismod efficitur massa. Donec gravida viverra erat eget finibus. Maecenas venenatis quam ut nisi luctus, sed fermentum erat mattis. Proin at metus interdum, congue massa tristique, eleifend ante. Donec condimentum massa et tellus congue, eget aliquam sem consequat. Sed sit amet consequat libero, ut faucibus ligula. Nam sodales tempor quam, at consequat tortor. Donec ipsum nunc, maximus sed enim dapibus, convallis aliquet felis. Etiam ut ante turpis.
-
-Aliquam aliquam mi eleifend faucibus suscipit. In eget erat a dolor faucibus cursus tempor a augue. Maecenas sit amet dapibus lectus, eget congue nulla. Praesent semper vel nisl sit amet elementum. Nullam tincidunt nisi sit amet nunc cursus ultrices. Maecenas nisl massa, fringilla at velit sed, feugiat congue lacus. Cras finibus enim ut nibh tincidunt posuere a nec lorem. Praesent lobortis a nibh id tempor. Vivamus venenatis nisl et enim porttitor, at tristique erat faucibus. Ut justo magna, sollicitudin lobortis ultrices quis, condimentum vitae nibh. Sed ut lorem neque. In ut eros velit. Sed at velit iaculis, fringilla metus vel, ullamcorper urna. Nullam consectetur nisi eget diam scelerisque, et iaculis enim vehicula. Praesent ultrices dolor sem, a consectetur magna aliquam in. Sed eget pellentesque ante, a mollis mauris.
-
-Phasellus vitae lorem feugiat leo placerat congue sit amet eu turpis. Aenean efficitur bibendum dictum. Sed at odio bibendum lorem ullamcorper porttitor. Sed sed gravida nibh, porta cursus quam. Ut non semper sem. Fusce ut euismod quam. Vestibulum dui ante, gravida non volutpat eget, finibus non nulla. Aliquam ultrices scelerisque lorem, sed varius nisl. Maecenas iaculis nunc in velit tempor commodo. Nunc non quam ligula. Morbi in pharetra nulla.
-
-Suspendisse facilisis est ac justo congue tincidunt. Nullam suscipit tempus volutpat. Nunc aliquam efficitur quam eget pretium. Duis ex tortor, luctus et fermentum ut, eleifend ac nisl. Pellentesque ultricies odio et bibendum tempor. Nulla iaculis nec enim eget dictum. Nulla quis urna porttitor, lobortis sapien in, efficitur libero. Sed eleifend vehicula felis, vel efficitur sem molestie et.
-
-Donec fringilla vulputate libero non aliquam. Sed eget accumsan leo, sit amet ullamcorper ipsum. Quisque consectetur libero at rhoncus lacinia. Quisque et posuere tellus. Etiam ac viverra mauris. Pellentesque porta lorem ac ultricies porttitor. Sed at mauris in mauris bibendum elementum quis vel lorem. Aliquam libero urna, rhoncus a porta quis, imperdiet eget sapien. Proin sit amet vulputate tellus. Sed libero enim, molestie vitae varius sit amet, commodo quis nibh. Nunc posuere ipsum ultrices nunc sagittis lobortis. Maecenas ut dui tellus. Morbi mollis lacus nec fermentum suscipit.
 `
 folder.addBlade({
   view: 'infodump',
@@ -264,7 +259,7 @@ addEventListener('mousemove', e => {
   // gExtend(mouseI, mouseJ)
   // updateShapes()
   // drawShapes()
-  // drawBrush()
+  drawBrush()
 })
 
 function drawBrush() {
@@ -275,17 +270,28 @@ function drawBrush() {
   }
   // add brush at mouse position
   let [mouseI, mouseJ] = xy2ij(mouseX, mouseY)
-  let [x, y] = ij2xy(mouseI, mouseJ)
-  let sz = gridSize * zoom
-  // made d for path
-  let d = ''
-  d += ` M ${x} ${y - sz}`
-  d += ` L ${x + sz} ${y}`
-  d += ` L ${x} ${y + sz}`
-  d += ` L ${x - sz} ${y}`
-  d += ` Z`
-  // add rombus dotted stroke
-  svg.innerHTML += `<path fill="none" stroke stroke-width="1" stroke-dasharray="5,5" class="brush" d="${d}" />`
+  let letterMatrix = abc[currentLetter]
+  mouseI -= (letterMatrix[0].length / 2) | 0
+  mouseJ -= (letterMatrix.length / 2) | 0
+  for (let j = 0; j < letterMatrix.length; j++) {
+    for (let i = 0; i < letterMatrix[j].length; i++) {
+      let I = i + j
+      let J = j - i
+      if (letterMatrix[j][i]) {
+        let [x, y] = ij2xy(mouseI + I, mouseJ + J)
+        let sz = gridSize * PARAMS.moduleSize
+        // made d for path
+        let d = ''
+        d += ` M ${x} ${y - sz}`
+        d += ` L ${x + sz} ${y}`
+        d += ` L ${x} ${y + sz}`
+        d += ` L ${x - sz} ${y}`
+        d += ` Z`
+        // add rombus dotted stroke
+        svg.innerHTML += `<path fill="none" stroke stroke-width=".05" stroke-dasharray="0.14142136" class="brush" d="${d}" />`
+      }
+    }
+  }
 }
 
 svg.setAttribute('stroke', '#fff')
@@ -506,8 +512,7 @@ document.addEventListener('keydown', e => {
   // if in abc, set as current letter
   if (Object.keys(abc).includes(e.key.toUpperCase())) {
     currentLetter = e.key.toUpperCase()
-    updateShapes()
-    drawShapes()
+    drawBrush()
   }
 })
 
