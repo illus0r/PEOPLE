@@ -5,16 +5,21 @@ const pane = new Tweakpane.Pane()
 pane.registerPlugin(TweakpaneInfodumpPlugin)
 pane.addBlade({
   view: 'infodump',
-  content: `PPP EEE OOO PPP L   EEE
-P P E   O O P P L   E
-PPP EEE O O PPP L   EEE
-P   E   O O P   L   E  
-P   EEE OOO P   LLL EEE`
+  content: `### ### ### ### #   ###
+# # #   # # # # #   #
+### ### # # ### #   ###
+#   #   # # #   #   #  
+#   ### ### #   ### ###`
     .split('')
     .map(d => {
       if (d === ' ') return '&nbsp;'
-      if (Math.random() > 0.5) return d
-      return d.toLowerCase()
+      if (d === '#') {
+        d = 'PEOPLE'.charAt((6 * Math.random()) | 0)
+        console.log('d:', d)
+        if (Math.random() > 0.5) return d
+        return d.toLowerCase()
+      }
+      return d
     })
     .join(''),
   border: false,
